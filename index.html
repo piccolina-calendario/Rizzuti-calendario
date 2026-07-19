@@ -16,7 +16,12 @@ header{background:var(--marron-dark);height:56px;display:flex;align-items:center
 .logo-wrap{display:flex;flex-direction:column;gap:1px;}
 .logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--crema);}
 .logo-sub{font-size:7px;font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:rgba(250,248,246,.4);}
+.header-right{display:flex;align-items:center;gap:12px;}
 .header-tag{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(250,248,246,.35);}
+.sync-status{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:2px;}
+.sync-ok{color:#4CAF50;}
+.sync-saving{color:rgba(250,248,246,.5);}
+.sync-error{color:#ff6b6b;}
 .mes-nav{background:var(--blanco);border-bottom:1px solid var(--borde);display:flex;padding:0 28px;flex-shrink:0;}
 .mes-nav-months{display:flex;overflow-x:auto;scrollbar-width:none;flex:1;}
 .mes-nav-months::-webkit-scrollbar{display:none;}
@@ -78,12 +83,15 @@ header{background:var(--marron-dark);height:56px;display:flex;align-items:center
 .slot-img-area:hover .img-ph span{color:var(--marron);}
 .img-rm{position:absolute;top:5px;right:5px;background:var(--marron);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;font-weight:700;display:none;align-items:center;justify-content:center;z-index:2;}
 .img-rm.show{display:flex;}
-.uploading{position:absolute;inset:0;background:rgba(250,248,246,.85);display:none;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--marron);}
+.uploading{position:absolute;inset:0;background:rgba(250,248,246,.9);display:none;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--marron);}
 .uploading.show{display:flex;}
 .add-btn{display:flex;align-items:center;gap:7px;padding:8px 12px;background:none;border:1.5px dashed var(--borde);border-radius:4px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--texto);width:100%;transition:all .15s;}
 .add-btn:hover{border-color:var(--marron);color:var(--marron);}
 .add-icon{width:18px;height:18px;border-radius:50%;background:var(--gris);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
 .panel-empty{padding:40px 18px;text-align:center;color:var(--texto);font-size:11px;font-weight:500;letter-spacing:.04em;}
+.loading-screen{position:fixed;inset:0;background:var(--crema);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:12px;}
+.loading-screen .loading-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--marron-dark);}
+.loading-screen .loading-sub{font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--texto);}
 @media(max-width:700px){
   .panel{position:fixed;right:0;top:0;bottom:0;z-index:100;width:100%!important;max-width:380px;}
   .panel.closed{width:0!important;}
@@ -91,12 +99,21 @@ header{background:var(--marron-dark);height:56px;display:flex;align-items:center
 </style>
 </head>
 <body>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">Rizzuti</div>
+  <div class="loading-sub">Cargando calendario...</div>
+</div>
+
 <header>
   <div class="logo-wrap">
     <div class="logo">Rizzuti</div>
     <div class="logo-sub">Dental Office</div>
   </div>
-  <div class="header-tag">Calendario 2026</div>
+  <div class="header-right">
+    <div class="sync-status sync-ok" id="syncStatus">● Sincronizado</div>
+    <div class="header-tag">Calendario 2026</div>
+  </div>
 </header>
 <div class="mes-nav"><div class="mes-nav-months" id="mesNav"></div></div>
 <div class="app-body">
@@ -110,10 +127,30 @@ header{background:var(--marron-dark);height:56px;display:flex;align-items:center
     <div class="panel-body" id="panelBody"></div>
   </div>
 </div>
-<script>
-const CLOUD_NAME='n6arlxei';
-const UPLOAD_PRESET='calendario_preset';
-const LS_KEY='rizzuti_cal_2026';
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBoW7G4NYcjbW75rR8rIxRlM7Y8e7flc3w",
+  authDomain: "rizzuti-calendario.firebaseapp.com",
+  projectId: "rizzuti-calendario",
+  storageBucket: "rizzuti-calendario.firebasestorage.app",
+  messagingSenderId: "788415799353",
+  appId: "1:788415799353:web:ac0fb0933478d42678ade8",
+  measurementId: "G-LWKBZKG92L"
+};
+
+const CLOUD_NAME = 'n6arlxei';
+const UPLOAD_PRESET = 'calendario_preset';
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── CONSTANTES ────────────────────────────────────────────────────────────────
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS_S=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DOW_LABELS=['D','L','M','X','J','V','S'];
@@ -121,24 +158,52 @@ const AÑO=2026;
 const MESES_ACTIVOS=[4,5,6,7,8,9,10,11];
 let mesActual=5;
 let selectedKey=null;
+let saveTimeout=null;
 
-function loadStore(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch(e){return {};}}
-function saveStore(){localStorage.setItem(LS_KEY,JSON.stringify(store.days));}
-const store={days:loadStore()};
+const days = {};
 
-function ds(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
-
-function initDay(key,year,month,d){
-  if(store.days[key]) return;
-  const date=new Date(year,month,d);const dow=date.getDay();
-  let historias=[],feed=false,feedDesc='';
-  const hDescs={2:'Menú ejecutivo',3:'Venta mayorista (foto y/o video)',4:'Menú ejecutivo',5:'Especial del finde ("especial del mes")'};
-  if([2,3,4,5].includes(dow)) historias=[{id:key+'-h0',desc:hDescs[dow]||'',copy:'',img:''}];
-  if(dow===4){feed=true;feedDesc='Producto terminado y proceso (carrusel)';}
-  store.days[key]={historias,feed,feedDesc,feedCopy:'',feedImg:''};saveStore();
+// ── FIRESTORE ────────────────────────────────────────────────────────────────
+function setSyncStatus(status){
+  const el=document.getElementById('syncStatus');
+  if(status==='ok'){el.textContent='● Sincronizado';el.className='sync-status sync-ok';}
+  else if(status==='saving'){el.textContent='● Guardando...';el.className='sync-status sync-saving';}
+  else{el.textContent='● Error al guardar';el.className='sync-status sync-error';}
 }
 
-function hasContent(key){const d=store.days[key];return d&&(d.historias.length>0||d.feed);}
+async function loadFromFirestore(){
+  try{
+    const ref=doc(db,'calendarios','rizzuti-2026');
+    const snap=await getDoc(ref);
+    if(snap.exists()){
+      const data=snap.data();
+      Object.assign(days, data.days||{});
+    }
+  }catch(e){console.error('Load error',e);}
+}
+
+function scheduleSave(){
+  setSyncStatus('saving');
+  if(saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout=setTimeout(async()=>{
+    try{
+      await setDoc(doc(db,'calendarios','rizzuti-2026'),{days});
+      setSyncStatus('ok');
+    }catch(e){setSyncStatus('error');}
+  },1500);
+}
+
+// ── INIT DAY ─────────────────────────────────────────────────────────────────
+function initDay(key,year,month,d){
+  if(days[key]) return;
+  const date=new Date(year,month,d);const dow=date.getDay();
+  let historias=[],feed=false,feedDesc='';
+  const hDescs={2:'Menú ejecutivo',3:'Venta mayorista (foto y/o video)',4:'Menú ejecutivo',5:'Especial del finde'};
+  if([2,3,4,5].includes(dow)) historias=[{id:key+'-h0',desc:hDescs[dow]||'',copy:'',img:''}];
+  if(dow===4){feed=true;feedDesc='Producto terminado y proceso (carrusel)';}
+  days[key]={historias,feed,feedDesc,feedCopy:'',feedImg:''};
+}
+
+function hasContent(key){const d=days[key];return d&&(d.historias.length>0||d.feed);}
 
 function buildMonth(year,month){
   const last=new Date(year,month+1,0).getDate();
@@ -148,6 +213,9 @@ function buildMonth(year,month){
   }
 }
 
+function ds(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+
+// ── CLOUDINARY ────────────────────────────────────────────────────────────────
 async function uploadToCloudinary(file){
   const fd=new FormData();fd.append('file',file);fd.append('upload_preset',UPLOAD_PRESET);
   const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
@@ -156,6 +224,7 @@ async function uploadToCloudinary(file){
   throw new Error('Upload failed');
 }
 
+// ── RENDER ────────────────────────────────────────────────────────────────────
 function renderNav(){
   const nav=document.getElementById('mesNav');nav.innerHTML='';
   MESES_ACTIVOS.forEach(m=>{
@@ -176,7 +245,7 @@ function renderCal(){
   DOW_LABELS.forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
   for(let i=0;i<firstDay;i++) html+=`<div class="cal-day empty-day"></div>`;
   for(let d=1;d<=lastDate;d++){
-    const key=ds(AÑO,mesActual,d);const hc=hasContent(key);const day=store.days[key];const isSelected=selectedKey===key;
+    const key=ds(AÑO,mesActual,d);const hc=hasContent(key);const day=days[key];const isSelected=selectedKey===key;
     let cls='cal-day'+(hc?' has-content':'')+(isSelected?' selected':'');
     let badges='';
     if(day){
@@ -190,37 +259,42 @@ function renderCal(){
   wrap.innerHTML=html+'</div>';
 }
 
-function selectDay(key){
+window.selectDay=function(key){
   if(selectedKey===key){closePanel();return;}
   if(selectedKey){const p=document.getElementById('calday-'+selectedKey);if(p)p.classList.remove('selected');}
   selectedKey=key;const el=document.getElementById('calday-'+key);if(el)el.classList.add('selected');
   openPanel(key);
-}
-function selectDayEmpty(key,d){
-  if(!store.days[key]) store.days[key]={historias:[],feed:false,feedDesc:'',feedCopy:'',feedImg:''};
+};
+
+window.selectDayEmpty=function(key,d){
+  if(!days[key]) days[key]={historias:[],feed:false,feedDesc:'',feedCopy:'',feedImg:''};
   selectDay(key);
-}
+};
+
 function openPanel(key){
   document.getElementById('panel').classList.remove('closed');
   const d=parseInt(key.split('-')[2]);const date=new Date(AÑO,mesActual,d);
   document.getElementById('panelFecha').textContent=`${DIAS_S[date.getDay()]} ${d} de ${MESES[mesActual]}`;
   renderPanelChecks(key);renderPanelBody(key);
 }
-function closePanel(){
+
+window.closePanel=function(){
   document.getElementById('panel').classList.add('closed');
   if(selectedKey){const el=document.getElementById('calday-'+selectedKey);if(el)el.classList.remove('selected');}
   selectedKey=null;
-}
+};
+
 function renderPanelChecks(key){
-  const day=store.days[key];const hChecked=day&&day.historias.length>0;const fChecked=day&&day.feed;
+  const day=days[key];const hChecked=day&&day.historias.length>0;const fChecked=day&&day.feed;
   document.getElementById('panelChecks').innerHTML=`
     <div class="check-btn ${hChecked?'checked-historia':''}" id="chk-h-${key}" onclick="toggleHistoria('${key}')">
       <div class="check-icon">${hChecked?'✓':''}</div>Historia</div>
     <div class="check-btn ${fChecked?'checked-feed':''}" id="chk-f-${key}" onclick="toggleFeed('${key}')">
       <div class="check-icon">${fChecked?'✓':''}</div>Post</div>`;
 }
+
 function renderPanelBody(key){
-  const day=store.days[key];
+  const day=days[key];
   if(!day||(day.historias.length===0&&!day.feed)){
     document.getElementById('panelBody').innerHTML=`<div class="panel-empty">Activá Historia o Post para agregar contenido</div>`;return;
   }
@@ -233,14 +307,14 @@ function renderPanelBody(key){
         ${canRemove?`<button class="slot-remove-btn" onclick="removeHistoria('${key}',${i})">Eliminar</button>`:''}
       </div>
       <div class="slot-inner">
-        <textarea class="slot-desc" rows="1" oninput="store.days['${key}'].historias[${i}].desc=this.value;saveStore();autoResize(this)">${h.desc}</textarea>
+        <textarea class="slot-desc" rows="1" oninput="days['${key}'].historias[${i}].desc=this.value;scheduleSave();autoResize(this)">${h.desc}</textarea>
         <div class="slot-img-area" id="imgarea-h-${h.id}">
           <div class="img-ph"><div class="plus">+</div><span>Subir imagen</span></div>
-          <input type="file" accept="image/*" onchange="handleImg(event,'${key}','h',${i})">
+          <input type="file" accept="image/*,video/*" onchange="handleImg(event,'${key}','h',${i})">
           <div class="uploading" id="upl-h-${h.id}">Subiendo...</div>
           <button class="img-rm" id="rm-h-${h.id}" onclick="removeImg(event,'h-${h.id}','${key}','h',${i})">×</button>
         </div>
-        <textarea class="slot-copy" rows="2" placeholder="Copy de la historia..." oninput="store.days['${key}'].historias[${i}].copy=this.value;saveStore();autoResize(this)">${h.copy}</textarea>
+        <textarea class="slot-copy" rows="2" placeholder="Copy de la historia..." oninput="days['${key}'].historias[${i}].copy=this.value;scheduleSave();autoResize(this)">${h.copy}</textarea>
       </div></div>`;
   });
   if(day.historias.length<5) html+=`<button class="add-btn" onclick="addHistoria('${key}')"><span class="add-icon">+</span>Agregar otra historia</button>`;
@@ -248,26 +322,28 @@ function renderPanelBody(key){
     html+=`<div class="slot-block">
       <div class="slot-header"><span class="slot-chip slot-chip-feed">Post</span></div>
       <div class="slot-inner">
-        <textarea class="slot-desc" rows="1" oninput="store.days['${key}'].feedDesc=this.value;saveStore();autoResize(this)">${day.feedDesc}</textarea>
+        <textarea class="slot-desc" rows="1" oninput="days['${key}'].feedDesc=this.value;scheduleSave();autoResize(this)">${day.feedDesc}</textarea>
         <div class="slot-img-area" id="imgarea-f-${key}">
-          <div class="img-ph"><div class="plus">+</div><span>Subir imagen</span></div>
-          <input type="file" accept="image/*" onchange="handleImg(event,'${key}','f',0)">
+          <div class="img-ph"><div class="plus">+</div><span>Subir imagen o video</span></div>
+          <input type="file" accept="image/*,video/*" onchange="handleImg(event,'${key}','f',0)">
           <div class="uploading" id="upl-f-${key}">Subiendo...</div>
           <button class="img-rm" id="rm-f-${key}" onclick="removeImg(event,'f-${key}','${key}','f',0)">×</button>
         </div>
-        <textarea class="slot-copy" rows="2" placeholder="Copy del post..." oninput="store.days['${key}'].feedCopy=this.value;saveStore();autoResize(this)">${day.feedCopy}</textarea>
+        <textarea class="slot-copy" rows="2" placeholder="Copy del post..." oninput="days['${key}'].feedCopy=this.value;scheduleSave();autoResize(this)">${day.feedCopy}</textarea>
       </div></div>`;
   }
   document.getElementById('panelBody').innerHTML=html;
   setTimeout(()=>{document.querySelectorAll('#panelBody textarea').forEach(autoResize);restoreImgs(key);},10);
 }
+
 function restoreImgs(key){
-  const day=store.days[key];if(!day) return;
+  const day=days[key];if(!day) return;
   day.historias.forEach(h=>{if(h.img)setImgSrc('h-'+h.id,h.img);});
   if(day.feedImg)setImgSrc('f-'+key,day.feedImg);
 }
+
 function refreshCalDay(key){
-  const day=store.days[key];const el=document.getElementById('calday-'+key);if(!el) return;
+  const day=days[key];const el=document.getElementById('calday-'+key);if(!el) return;
   const hc=day&&(day.historias.length>0||day.feed);
   el.className='cal-day'+(hc?' has-content':'')+(selectedKey===key?' selected':'');
   let badges='';
@@ -278,68 +354,96 @@ function refreshCalDay(key){
   }
   el.querySelector('.day-badges').innerHTML=badges;
 }
-function toggleHistoria(key){
-  const day=store.days[key];
+
+window.toggleHistoria=function(key){
+  const day=days[key];
   if(day.historias.length>0){day.historias=[];}
   else{
     const date=new Date(AÑO,mesActual,parseInt(key.split('-')[2]));const dow=date.getDay();
     const descs={2:'Menú ejecutivo',3:'Venta mayorista',4:'Menú ejecutivo',5:'Especial del finde'};
     day.historias=[{id:key+'-h'+Date.now(),desc:descs[dow]||'',copy:'',img:''}];
   }
-  saveStore();updateChk('chk-h-'+key,'historia',day.historias.length>0);renderPanelBody(key);refreshCalDay(key);
-}
-function toggleFeed(key){
-  const day=store.days[key];day.feed=!day.feed;
+  scheduleSave();updateChk('chk-h-'+key,'historia',day.historias.length>0);renderPanelBody(key);refreshCalDay(key);
+};
+
+window.toggleFeed=function(key){
+  const day=days[key];day.feed=!day.feed;
   if(day.feed&&!day.feedDesc) day.feedDesc='Producto terminado y proceso (carrusel)';
-  saveStore();updateChk('chk-f-'+key,'feed',day.feed);renderPanelBody(key);refreshCalDay(key);
-}
+  scheduleSave();updateChk('chk-f-'+key,'feed',day.feed);renderPanelBody(key);refreshCalDay(key);
+};
+
 function updateChk(id,tipo,checked){
   const btn=document.getElementById(id);if(!btn) return;
   btn.className='check-btn'+(checked?' checked-'+tipo:'');
   btn.querySelector('.check-icon').textContent=checked?'✓':'';
 }
-function addHistoria(key){
-  const day=store.days[key];if(day.historias.length>=5) return;
+
+window.addHistoria=function(key){
+  const day=days[key];if(day.historias.length>=5) return;
   day.historias.push({id:key+'-h'+Date.now(),desc:'',copy:'',img:''});
-  saveStore();renderPanelBody(key);refreshCalDay(key);
-}
-function removeHistoria(key,idx){
-  store.days[key].historias.splice(idx,1);
-  if(store.days[key].historias.length===0) updateChk('chk-h-'+key,'historia',false);
-  saveStore();renderPanelBody(key);refreshCalDay(key);
-}
-function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
-async function handleImg(e,dayKey,tipo,idx){
+  scheduleSave();renderPanelBody(key);refreshCalDay(key);
+};
+
+window.removeHistoria=function(key,idx){
+  days[key].historias.splice(idx,1);
+  if(days[key].historias.length===0) updateChk('chk-h-'+key,'historia',false);
+  scheduleSave();renderPanelBody(key);refreshCalDay(key);
+};
+
+window.autoResize=function(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';};
+window.scheduleSave=scheduleSave;
+
+window.handleImg=async function(e,dayKey,tipo,idx){
   const file=e.target.files[0];if(!file) return;
-  const hId=tipo==='h'?store.days[dayKey].historias[idx].id:dayKey;
+  const hId=tipo==='h'?days[dayKey].historias[idx].id:dayKey;
   const areaId=tipo==='h'?'h-'+hId:'f-'+dayKey;
   const uplEl=document.getElementById('upl-'+areaId);if(uplEl)uplEl.classList.add('show');
   try{
-    const url=await uploadToCloudinary(file);
-    if(tipo==='h') store.days[dayKey].historias[idx].img=url;
-    else store.days[dayKey].feedImg=url;
-    saveStore();setImgSrc(areaId,url);
-  }catch(err){alert('Error al subir la imagen. Intentá de nuevo.');}
+    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',UPLOAD_PRESET);
+    const resourceType=file.type.startsWith('video')?'video':'image';
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,{method:'POST',body:fd});
+    const data=await res.json();
+    if(!data.secure_url) throw new Error('fail');
+    const url=data.secure_url;
+    if(tipo==='h') days[dayKey].historias[idx].img=url;
+    else days[dayKey].feedImg=url;
+    scheduleSave();setImgSrc(areaId,url,resourceType==='video');
+  }catch(err){alert('Error al subir. Intentá de nuevo.');}
   finally{if(uplEl)uplEl.classList.remove('show');}
-}
-function setImgSrc(areaId,src){
+};
+
+function setImgSrc(areaId,src,isVideo=false){
   const area=document.getElementById('imgarea-'+areaId);if(!area) return;
   area.querySelector('.img-ph').style.display='none';
-  let img=area.querySelector('img');
-  if(!img){img=document.createElement('img');area.insertBefore(img,area.querySelector('input'));}
-  img.src=src;const rm=document.getElementById('rm-'+areaId);if(rm)rm.classList.add('show');
+  let media=area.querySelector('img,video');
+  if(!media){
+    media=document.createElement(isVideo?'video':'img');
+    if(isVideo){media.controls=true;media.style.width='100%';media.style.height='100%';media.style.objectFit='cover';}
+    area.insertBefore(media,area.querySelector('input'));
+  }
+  media.src=src;
+  const rm=document.getElementById('rm-'+areaId);if(rm)rm.classList.add('show');
 }
-function removeImg(e,areaId,dayKey,tipo,idx){
+
+window.removeImg=function(e,areaId,dayKey,tipo,idx){
   e.stopPropagation();
-  if(tipo==='h') store.days[dayKey].historias[idx].img='';
-  else store.days[dayKey].feedImg='';
-  saveStore();
+  if(tipo==='h') days[dayKey].historias[idx].img='';
+  else days[dayKey].feedImg='';
+  scheduleSave();
   const area=document.getElementById('imgarea-'+areaId);if(!area) return;
-  const img=area.querySelector('img');if(img)img.remove();
+  const media=area.querySelector('img,video');if(media)media.remove();
   area.querySelector('.img-ph').style.display='flex';
   const rm=document.getElementById('rm-'+areaId);if(rm)rm.classList.remove('show');
-}
-renderNav();renderCal();
+};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(async()=>{
+  await loadFromFirestore();
+  document.getElementById('loadingScreen').style.display='none';
+  renderNav();
+  renderCal();
+})();
+
 </script>
 </body>
 </html>
